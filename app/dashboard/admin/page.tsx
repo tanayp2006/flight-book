@@ -21,7 +21,7 @@ export default async function AdminPage() {
   });
 
   const role = user?.role || 'USER';
-  if (role !== 'AIRPORT_MANAGER' && role !== 'ADMIN') {
+  if (role !== 'AIRPORT_MANAGER') {
     redirect('/dashboard/user');
   }
 

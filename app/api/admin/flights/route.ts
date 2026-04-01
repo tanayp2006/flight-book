@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { getSessionAndRole, isAdminRole } from '@/lib/route-auth';
 
 const prisma = new PrismaClient();
 
 import type { Prisma } from '@prisma/client';
 
 export async function GET(request: Request) {
+  const { session, role } = await getSessionAndRole(request);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isAdminRole(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   const { searchParams } = new URL(request.url);
   const origin = searchParams.get('origin');
   const destination = searchParams.get('destination');
@@ -29,6 +34,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const { session, role } = await getSessionAndRole(request);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isAdminRole(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   const data = await request.json();
 
   if (!data.flightNumber || !data.originId || !data.destinationId || !data.airlineId || !data.airplaneId || !data.departureTime || !data.arrivalTime || !data.basePrice) {

@@ -26,11 +26,11 @@ const airports = [
 ];
 
 const airlines = [
-  { name: 'Global Wings', code: 'GW' },
-  { name: 'SkyPulse Airlines', code: 'SP' },
-  { name: 'TransContinental', code: 'TC' },
-  { name: 'Nimbus Air', code: 'NA' },
-  { name: 'AeroNova', code: 'AN' },
+  { name: 'Global Wings', code: 'GW', logoUrl: 'https://picsum.photos/seed/gw-airline/80/80' },
+  { name: 'SkyPulse Airlines', code: 'SP', logoUrl: 'https://picsum.photos/seed/sp-airline/80/80' },
+  { name: 'TransContinental', code: 'TC', logoUrl: 'https://picsum.photos/seed/tc-airline/80/80' },
+  { name: 'Nimbus Air', code: 'NA', logoUrl: 'https://picsum.photos/seed/na-airline/80/80' },
+  { name: 'AeroNova', code: 'AN', logoUrl: 'https://picsum.photos/seed/an-airline/80/80' },
 ];
 
 const airplanes = [
@@ -87,6 +87,7 @@ async function main() {
         data: {
           name: airline.name,
           code: airline.code,
+          logoUrl: airline.logoUrl,
         },
       }),
     ),
