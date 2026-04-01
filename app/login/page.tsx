@@ -10,7 +10,7 @@ export default function LoginPage() {
     setLoading(true);
     await signIn.social({
       provider: "google",
-      callbackURL: "/dashboard", // Redirect here after success
+      callbackURL: "/redirect", // Redirect here after success
     });
     setLoading(false);
   };
