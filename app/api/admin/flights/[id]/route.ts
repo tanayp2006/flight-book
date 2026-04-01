@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { getSessionAndRole, isAdminRole } from '@/lib/route-auth';
 
 const prisma = new PrismaClient();
 
@@ -13,6 +14,10 @@ const resolveId = async (params: IdParam | Promise<IdParam>) => {
 };
 
 export async function GET(request: Request, context: RouteContext) {
+  const { session, role } = await getSessionAndRole(request);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isAdminRole(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   const id = await resolveId(context.params);
   const flight = await prisma.flight.findUnique({
     where: { id },
@@ -24,6 +29,10 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
+  const { session, role } = await getSessionAndRole(request);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isAdminRole(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   const id = await resolveId(context.params);
   const data = await request.json();
 
@@ -49,6 +58,10 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
+  const { session, role } = await getSessionAndRole(request);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isAdminRole(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   const id = await resolveId(context.params);
   await prisma.flight.delete({ where: { id } });
   return NextResponse.json({ success: true });

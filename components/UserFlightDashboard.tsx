@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 type Flight = {
   id: string;
@@ -24,7 +25,7 @@ export default function UserFlightDashboard() {
   const loadFlights = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/flights');
+      const res = await fetch('/api/flights/search');
       if (!res.ok) throw new Error('Failed to load flights');
       const data: Flight[] = await res.json();
       setFlights(data);
@@ -42,7 +43,15 @@ export default function UserFlightDashboard() {
 
   return (
     <section className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Available Flights</h1>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Available Flights</h1>
+        <Link
+          href="/flights"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+        >
+          Open Search & Filters
+        </Link>
+      </div>
       {error && <p className="text-red-600 mb-3">{error}</p>}
       {loading ? (
         <p>Loading flights...</p>
@@ -70,9 +79,12 @@ export default function UserFlightDashboard() {
                   <td className="px-3 py-2">${flight.basePrice.toFixed(2)}</td>
                   <td className="px-3 py-2">{flight.status}</td>
                   <td className="px-3 py-2">
-                    <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    <Link
+                      href={`/bookings/${flight.id}`}
+                      className="inline-flex items-center justify-center rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-600"
+                    >
                       Book Now
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))}

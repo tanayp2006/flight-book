@@ -20,7 +20,7 @@ export default async function DashboardPage() {
     select: { role: true },
   });
 
-  const isAdmin = user?.role === 'AIRPORT_MANAGER' || user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'AIRPORT_MANAGER';
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center">

@@ -17,15 +17,15 @@ export default function WelcomeSection({ isAdmin }: WelcomeSectionProps) {
             Go to Admin Panel
           </button>
           <button
-            onClick={() => window.location.href = '/dashboard/user'}
+            onClick={() => window.location.href = '/flights'}
             className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 text-lg"
           >
-            Go to User Panel
+            Explore User Flow
           </button>
         </div>
       ) : (
         <button
-          onClick={() => window.location.href = '/dashboard/user'}
+          onClick={() => window.location.href = '/flights'}
           className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 text-lg"
         >
           Search Flights

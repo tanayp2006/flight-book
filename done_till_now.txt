@@ -1,337 +1,280 @@
 ================================================================================
-                    FLIGHT BOOKING APP - PROJECT SUMMARY
-                          Member A (Admin Backend)
+                    FLIGHT BOOKING APP - CURRENT IMPLEMENTATION LOG
+                             Last Updated: 2026-04-01
 ================================================================================
 
 PROJECT OVERVIEW
 ================================================================================
-A Next.js 16 flight booking application with admin and user dashboards, built 
-with Prisma ORM, PostgreSQL (Neon), Better Auth (Google OAuth), TypeScript, and 
-Tailwind CSS.
+This is a Next.js App Router flight booking application using:
+- Next.js 16 + TypeScript
+- Prisma ORM + PostgreSQL (Neon)
+- Better Auth for authentication/session
+- Tailwind CSS for UI
 
-The app separates admin functionality (flight management) from user functionality 
-(flight search/booking) with role-based access control driven entirely by database 
-user roles.
+The app currently includes:
+- Role-based navigation and route protection
+- AIRPORT_MANAGER-only admin routes and admin APIs
+- User search/discovery flow on /flights with autocomplete and filters
+- Booking details route (/bookings/[id]) to keep click flow valid
 
 ================================================================================
-DATABASE SETUP
+DATABASE AND MODELS
 ================================================================================
-
-Models (Prisma Schema):
-  - User: id, name, email, emailVerified, image, role (UserRole enum), createdAt, updatedAt
-  - Airport: id, iata, city, country
-  - Airline: id, name, code
-  - Airplane: id, model, capacity
-  - Flight: id, flightNumber, origin (relation), destination (relation), 
-           airline (relation), airplane (relation), departureTime, arrivalTime,
-           durationMins, basePrice, status (FlightStatus enum)
+Prisma models:
+- User
+- Session
+- Account
+- Verification
+- Airport
+- Airline
+- Airplane
+- Flight
 
 Enums:
-  - UserRole: USER | AIRPORT_MANAGER | ADMIN
-  - FlightStatus: SCHEDULED | DELAYED | BOARDING | CANCELLED
+- UserRole: USER | AIRPORT_MANAGER | ADMIN
+- FlightStatus: SCHEDULED | DELAYED | BOARDING | CANCELLED
 
-Database:
-  - Provider: PostgreSQL (Neon)
-  - Connection: via DATABASE_URL in .env
-  - Initialization: Via npx prisma migrate dev
-  - Seeding: prisma/seed.ts generates 20 airports, 5 airlines, 10 airplanes, 55 flights
+Current access rule in code:
+- Admin behavior is granted only to AIRPORT_MANAGER.
+- ADMIN enum still exists in schema but is not considered admin by current guards.
 
-Role Assignment:
-  - New users default to 'USER' role when they sign up
-  - Admins are manually promoted in the database to 'ADMIN' or 'AIRPORT_MANAGER' role
-  - Both 'ADMIN' and 'AIRPORT_MANAGER' roles have identical admin permissions
-  - Use npx prisma studio to manually update user roles in the User table
+Seeding:
+- prisma/seed.ts populates airports, airlines, airplanes, and flights for testing.
 
 ================================================================================
-AUTHENTICATION SETUP
+AUTHENTICATION AND ROLE RESOLUTION
 ================================================================================
+Authentication:
+- Better Auth wired through app/api/auth/[...all]/route.ts
+- Session retrieved via auth.api.getSession
 
-Framework: Better Auth (OAuth)
-  - Google OAuth login configured in lib/auth.ts
-  - Uses Prisma adapter with PostgreSQL
-  - Google credentials: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET in .env
+Role resolution:
+- Role fetched from DB on protected server routes.
+- Middleware role source endpoint:
+  - GET /api/auth/role
 
-User Role Assignment:
-  - New users get 'USER' role by default in onCreateUser hook
-  - Roles are entirely database-driven (User.role column)
-  - Admins are promoted manually via database updates
-
-Session Management:
-  - User session is fetched from Better Auth
-  - Role is fetched from database on each request (from User.role column)
-  - Ensures role is always current and matches database state
+Shared helper:
+- lib/route-auth.ts
+  - getSessionAndRole(request)
+  - isAdminRole(role) -> role === AIRPORT_MANAGER
 
 ================================================================================
-ROUTING STRUCTURE
+ROUTES AND ACCESS CONTROL
 ================================================================================
+Public:
+- /
+- /login
 
-Public Routes:
-  / - Root (Next.js default landing page)
-  /login - Google OAuth login page
+Utility:
+- /redirect
+  - Post-login redirection based on role and optional target/from query params.
 
-Protected Routes (require authentication):
-  /redirect - Post-login redirect handler
-    - Fetches user role from database
-    - Redirects both admins and users to /dashboard
+Dashboard:
+- /dashboard
+- /dashboard/admin
+- /dashboard/user
 
-  /dashboard - Welcome page (role-based UI):
-    - Admins (ADMIN or AIRPORT_MANAGER): 
-      * "Go to Admin Panel" button → /dashboard/admin
-      * "Go to User Panel" button → /dashboard/user
-    - Users (USER role): 
-      * "Search Flights" button → /dashboard/user
+Search and booking:
+- /flights
+- /bookings/[id]
 
-  /dashboard/admin - Admin Flight Management Panel
-    - Access: ADMIN or AIRPORT_MANAGER roles only
-    - Non-admins redirect to /dashboard/user
-    - Features: 
-      * View all flights in a table
-      * Edit flight status (dropdown: SCHEDULED, DELAYED, BOARDING, CANCELLED)
-      * Delete flights with confirmation
-      * Optimistic UI updates for better UX
-    - Navigation link to /dashboard/user ("View as User")
+APIs:
+- /api/auth/[...all]
+- /api/auth/role
+- /api/flights/search
+- /api/admin/flights
+- /api/admin/flights/[id]
+- /api/admin/airlines
+- /api/admin/airports
 
-  /dashboard/user - User Flight Search & Booking
-    - Access: All authenticated users
-    - Features: 
-      * View available flights in a table
-      * Read-only flight details
-      * "Book Now" button (placeholder for Phase 3)
-    - Navigation link for admins to /dashboard/admin ("Go to Admin Panel")
-
-API Routes:
-  /api/auth/[...all] - Better Auth handlers (OAuth, session management)
-  /api/admin/flights - GET (fetch all flights), POST (create new flight)
-  /api/admin/flights/[id] - GET (single flight), PATCH (update flight status), DELETE (delete flight)
-  /api/admin/airlines - Airlines CRUD endpoints
-  /api/admin/airports - Airports CRUD endpoints
+Middleware (middleware.ts):
+- Protects /dashboard/*, /flights/*, /bookings/*, /api/admin/*
+- If unauthenticated:
+  - redirects page routes to /login
+  - returns 401 for protected API routes
+- If non-admin on admin routes:
+  - redirects page routes to /dashboard/user
+  - returns 403 for admin APIs
+- If AIRPORT_MANAGER visits user-protected surfaces:
+  - redirects to /dashboard/admin
 
 ================================================================================
-COMPONENTS CREATED
+ADMIN IMPLEMENTATION (AIRPORT_MANAGER ONLY)
 ================================================================================
+Admin page:
+- app/dashboard/admin/page.tsx
+- Server-side role gate requires AIRPORT_MANAGER
 
-components/WelcomeSection.tsx
-  - Client component for /dashboard welcome screen
-  - Props: isAdmin (boolean)
-  - Renders role-based button navigation:
-    * For admins: Two buttons (Admin Panel, User Panel)
-    * For users: One button (Search Flights)
+Admin UI:
+- components/AdminFlightDashboard.tsx
+- Features:
+  - Read flights (GET /api/admin/flights)
+  - Update flight status (PATCH /api/admin/flights/[id])
+  - Delete flights (DELETE /api/admin/flights/[id])
+  - Loading and error handling
 
-components/AdminFlightDashboard.tsx
-  - Client component for admin flight management
-  - Features:
-    * Fetches flights from /api/admin/flights
-    * Displays flights in a table format
-    * Edit flight status via dropdown (SCHEDULED, DELAYED, BOARDING, CANCELLED)
-    * Delete flights with confirmation popup
-    * Optimistic UI updates (update UI immediately, revert on error)
-    * Error handling and loading states
-
-components/UserFlightDashboard.tsx
-  - Client component for user flight viewing
-  - Features:
-    * Fetches flights from /api/admin/flights
-    * Displays flights in a read-only table
-    * Shows flight details: flight number, route, airline, airplane, departure/arrival, price, status
-    * "Book Now" button for each flight (non-functional, placeholder)
-    * Error handling and loading states
-
-Page Components (in app/ directory):
-  - app/page.tsx - Root landing page
-  - app/login/page.tsx - Google OAuth login
-  - app/redirect/page.tsx - Post-login redirect (fetches role, redirects to /dashboard)
-  - app/dashboard/page.tsx - Welcome dashboard (role-based UI)
-  - app/dashboard/admin/page.tsx - Admin flight management
-  - app/dashboard/user/page.tsx - User flight viewing
+Admin APIs are protected in:
+- app/api/admin/flights/route.ts
+- app/api/admin/flights/[id]/route.ts
+- app/api/admin/airlines/route.ts
+- app/api/admin/airports/route.ts
 
 ================================================================================
-ROLE-BASED ACCESS CONTROL
+USER SEARCH AND DISCOVERY (PHASE 2)
 ================================================================================
+Main search page:
+- app/flights/page.tsx
 
-Three User Roles in Database:
-  1. USER - Regular passengers
-     - Can access /dashboard/user
-     - Can view flights
-     - Automatically redirected from /dashboard/admin to /dashboard/user
-     - See "Search Flights" button on /dashboard
+Hero search and filters:
+- components/FlightHeroSearch.tsx
 
-  2. AIRPORT_MANAGER - Admin (legacy role name)
-     - Can access /dashboard/admin
-     - Can perform CRUD operations on flights
-     - Can also access /dashboard/user
-     - See "Go to Admin Panel" and "Go to User Panel" buttons on /dashboard
-     - See "Go to Admin Panel" link on /dashboard/user
+Implemented search inputs:
+- Source airport (autocomplete via datalist)
+- Destination airport (autocomplete via datalist)
+- Date
+- Airline (autocomplete via datalist)
+- Min price
+- Max price
 
-  3. ADMIN - Admin (modern role name)
-     - Identical permissions to AIRPORT_MANAGER
-     - Can access /dashboard/admin
-     - Can perform CRUD operations on flights
-     - Can also access /dashboard/user
-     - See "Go to Admin Panel" and "Go to User Panel" buttons on /dashboard
-     - See "Go to Admin Panel" link on /dashboard/user
+Query and validation handling:
+- Date strict parse (YYYY-MM-DD) with UTC day boundaries
+- Price parsing supports minPrice, maxPrice, and compact priceRange
+- Invalid/negative values sanitized
+- min/max auto-corrected when reversed
 
-Role Checks Implementation:
-  - /dashboard/admin: Allows access if role === 'AIRPORT_MANAGER' OR role === 'ADMIN'
-  - /dashboard/page: Shows admin buttons if role === 'AIRPORT_MANAGER' OR role === 'ADMIN'
-  - /dashboard/user/page: Shows admin link if role === 'AIRPORT_MANAGER' OR role === 'ADMIN'
+Search API:
+- app/api/flights/search/route.ts
+- Supported params:
+  - sourceAirportId
+  - destinationAirportId
+  - airlineId
+  - date
+  - minPrice
+  - maxPrice
+  - priceRange
 
-Manual Role Assignment:
-  1. Run: npx prisma studio
-  2. Navigate to User table
-  3. Click on a user record
-  4. Update the 'role' field to 'ADMIN' or 'AIRPORT_MANAGER'
-  5. Save
-  
-  OR directly via SQL:
-  UPDATE "User" SET role = 'ADMIN' WHERE id = 'user_id';
+Results UI:
+- components/FlightResults.tsx
+- Displays route, timing, duration, stop estimate, airline visual, price, capacity
+- Book action links to /bookings/[id]
 
 ================================================================================
-AUTHENTICATION FLOW
+USER DASHBOARD FLOW (FIXED)
 ================================================================================
+User page:
+- app/dashboard/user/page.tsx
 
-1. Unauthenticated user visits app
-   → Redirected to /login
+User dashboard component:
+- components/UserFlightDashboard.tsx
 
-2. User clicks "Sign in with Google"
-   → Google OAuth authentication prompt
-   → New user created in database with role = 'USER'
-   → Session established
-
-3. After successful authentication, redirected to /redirect
-   → Fetches user.role from database
-   → Redirects to /dashboard (both admins and users go here)
-
-4. User sees /dashboard with role-specific buttons:
-   - Admin (ADMIN or AIRPORT_MANAGER): "Go to Admin Panel" | "Go to User Panel"
-   - User (USER): "Search Flights"
-
-5. Navigation flow:
-   - Admin clicks "Go to Admin Panel" → /dashboard/admin (flight management)
-   - Admin clicks "Go to User Panel" → /dashboard/user (flight viewing)
-   - User clicks "Search Flights" → /dashboard/user (flight viewing)
-
-6. Cross-dashboard navigation:
-   - On /dashboard/admin: "View as User" link → /dashboard/user
-   - On /dashboard/user (when logged in as admin): "Go to Admin Panel" link → /dashboard/admin
+Current behavior:
+- Fetches from user-safe endpoint: /api/flights/search
+- No longer fetches /api/admin/flights (removed USER 403 issue)
+- Provides direct button: Open Search and Filters -> /flights
+- Row action Book Now -> /bookings/[id]
 
 ================================================================================
-KEY DESIGN DECISIONS
+BOOKING ROUTE CONTINUITY (FLOW REPAIR)
 ================================================================================
+Previous issue:
+- Book actions could lead to missing routes and 404 errors.
 
-1. Database-Driven Roles
-   - All roles are stored in the User.role column
-   - No hardcoded configuration arrays
-   - Roles fetched from database on every request
-   - Easy to manage via Prisma Studio or raw SQL
+Fix:
+- Added app/bookings/[id]/page.tsx
+- Behavior:
+  - Session required
+  - USER role required
+  - Flight detail view for selected id
+  - Back to Search link
 
-2. Unified Admin Roles
-   - Both ADMIN and AIRPORT_MANAGER roles have identical permissions
-   - Provides flexibility for future permission differentiation
-   - Simplifies role checks with OR logic
-
-3. Centralized Dashboard Entry Point
-   - /dashboard is the landing page for all authenticated users
-   - Role-based UI provides appropriate navigation options
-   - Single point for dashboard-level logic (role fetching, redirects)
-   - Simplifies authentication flow
-
-4. Component Architecture
-   - WelcomeSection: Client component for interactive button navigation
-   - AdminFlightDashboard: Client component for admin UI (status updates, deletions)
-   - UserFlightDashboard: Client component for user view (read-only display)
-   - Page components (Server): Handle authentication, role fetching, redirects
-
-5. Default User Role
-   - New signups get 'USER' role by default
-   - Promotes secure by default (no unintended admin access)
-   - Admin promotion is explicit and manual
+Result:
+- Search -> Book Now -> Booking details is now a valid route chain.
 
 ================================================================================
-BUILD & DEPLOYMENT STATUS
+WELCOME AND ENTRY FLOW UPDATES
 ================================================================================
+Welcome section:
+- components/WelcomeSection.tsx
 
-Build Status: ✓ PASSING
-  - All TypeScript checks passed
-  - All routes compiled successfully
-  - No type errors
-  - No warnings
+Current dashboard entry behavior:
+- USER button Search Flights -> /flights
+- AIRPORT_MANAGER buttons:
+  - Go to Admin Panel -> /dashboard/admin
+  - Explore User Flow -> /flights
 
-Current Project Structure:
-  app/
-    page.tsx - Root/home page
-    layout.tsx - Root layout with global styles
-    login/page.tsx - Google login page
-    redirect/page.tsx - Post-login redirect handler
-    dashboard/
-      page.tsx - Welcome dashboard (role-based UI)
-      admin/page.tsx - Admin flight management panel
-      user/page.tsx - User flight viewing panel
-    api/
-      auth/[...all]/route.ts - Better Auth handlers
-      admin/
-        flights/route.ts - GET all flights, POST create flight
-        flights/[id]/route.ts - GET single, PATCH status, DELETE flight
-        airlines/... - Airlines CRUD endpoints
-        airports/... - Airports CRUD endpoints
-
-  components/
-    WelcomeSection.tsx - Dashboard welcome UI with role-based buttons
-    AdminFlightDashboard.tsx - Admin flight management UI
-    UserFlightDashboard.tsx - User flight viewing UI
-
-  lib/
-    auth.ts - Better Auth configuration and setup
-
-  prisma/
-    schema.prisma - Database schema definition (models, enums, relations)
-    seed.ts - Database seeding script (20 airports, 5 airlines, 10 airplanes, 55 flights)
+Unified user journey:
+- /dashboard -> /flights -> /bookings/[id]
 
 ================================================================================
-NEXT PHASES (TODO)
+KNOWN GAPS AND NEXT WORK
 ================================================================================
+Not yet implemented:
+- Persistent booking transaction model (Booking table and APIs)
+- Passenger data capture
+- Seat map and seat locking workflow
+- Payment integration
+- Booking confirmation lifecycle
 
-Phase 2: Search & Discovery
-  - Add search/filter form to /dashboard/user
-  - Filter flights by origin airport
-  - Filter flights by destination airport
-  - Filter flights by departure date
-  - Filter flights by price range
-  - Sort by various criteria (price, duration, departure time, etc.)
-
-Phase 3: Booking & Seat Selection
-  - Create Booking model in Prisma schema
-  - Create Passenger model in Prisma schema
-  - Create Seat model for airplane seating configuration
-  - Implement "Book Now" button functionality
-  - Build seat selection UI
-  - Store booking information in database
-  - Calculate total price
-
-Phase 4: Additional Features
-  - Payment integration
-  - Booking management (view, cancel, modify bookings)
-  - Email notifications
-  - Admin booking management dashboard
-  - Download booking confirmation as PDF
+Recommended next steps:
+1) Add Booking model and migration
+2) Add booking create/confirm API
+3) Connect /bookings/[id] page to actual booking submission
+4) Add integration tests for middleware role redirects and route flow
 
 ================================================================================
-ENVIRONMENT VARIABLES REQUIRED
+BUILD / QUALITY STATUS
 ================================================================================
+Latest checks:
+- npm run lint: PASS
 
-DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
-GOOGLE_CLIENT_ID=your_google_client_id_here
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-BETTER_AUTH_SECRET=your_random_secret_string_here
+Notes:
+- Search and role routing regressions previously observed were addressed with:
+  - user endpoint correction (/api/flights/search)
+  - route continuity fixes (/bookings/[id])
+  - dashboard entry flow cleanup
+
+================================================================================
+KEY FILES MAP
+================================================================================
+Core flow:
+- app/flights/page.tsx
+- components/FlightHeroSearch.tsx
+- components/FlightResults.tsx
+- app/api/flights/search/route.ts
+- app/bookings/[id]/page.tsx
+
+Dashboard and navigation:
+- app/dashboard/page.tsx
+- app/dashboard/admin/page.tsx
+- app/dashboard/user/page.tsx
+- components/WelcomeSection.tsx
+- components/UserFlightDashboard.tsx
+- components/AdminFlightDashboard.tsx
+- app/redirect/page.tsx
+
+Role enforcement:
+- middleware.ts
+- app/api/auth/role/route.ts
+- lib/route-auth.ts
+- app/api/admin/flights/route.ts
+- app/api/admin/flights/[id]/route.ts
+- app/api/admin/airlines/route.ts
+- app/api/admin/airports/route.ts
+
+Schema and seed:
+- prisma/schema.prisma
+- prisma/seed.ts
 
 ================================================================================
 USEFUL COMMANDS
 ================================================================================
+Development:
+- npm run dev
+- npm run lint
+- npm run build
 
-npm run dev - Start development server (localhost:3000)
-npm run build - Build for production
-npm run build - Verify build before deployment
-
-npx prisma migrate dev - Create and apply database migrations
-npx prisma db seed - Run the seeding script to populate sample data
-npx prisma studio - Open Prisma Studio UI to browse and edit database
-npx prisma db push - Sync schema to database without creating migrations
+Prisma:
+- npx prisma migrate dev
+- npx prisma db seed
+- npx prisma studio
+- npx prisma db push
