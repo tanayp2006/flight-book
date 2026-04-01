@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar"; // Import the component
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AI-SDR | Automated Outreach",
+  title: "Flight-booker | Automated Outreach",
   description: "Generate hyper-personalized sales emails with AI",
 };
 

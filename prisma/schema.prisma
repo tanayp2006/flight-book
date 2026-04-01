@@ -23,9 +23,7 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
-  
-  // AI-SDR Specific Relations
-  generations   Generation[]
+
 
   @@unique([email])
   @@map("user")

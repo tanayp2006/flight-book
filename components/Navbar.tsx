@@ -20,7 +20,7 @@ export default function Navbar() {
         {/* Logo / App Name */}
         <div className="flex items-center">
           <Link href={session ? "/dashboard" : "/"} className="text-xl font-bold text-gray-900">
-            🚀 AI-SDR
+            🚀 Flight-booker
           </Link>
         </div>
 

@@ -22,7 +22,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Welcome to AI-SDR
+            Welcome to Flight-booker
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to start automating your outreach
