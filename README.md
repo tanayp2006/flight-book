@@ -1,75 +1,81 @@
 # Flight Booking Management System (FBMS)
 
-This project is a high-performance, role-based flight booking application designed to handle complex logistics for airports, airlines, and travelers.
+This project is a high-performance, role-based flight booking application designed to handle complex logistics for airports, airlines, and travelers. It is built using **Next.js**, **Prisma**, **Neon (PostgreSQL)**, and **Better Auth**.
 
 ---
 
-## 🚀 Tech Stack
-* **Framework:** Next.js (App Router)
-* **Database:** Neon (Serverless Postgres)
-* **ORM:** Prisma
-* **Authentication:** Better Auth (Google OAuth)
-* **Styling:** Tailwind CSS + Shadcn/UI
+## 🚀 Phase 1: The Core Architect (Member A)
+**Goal:** Build the "World" of the app. Without the airports and flights, the other members have nothing to display.
+
+* **Database Schema (Prisma):** * Expand the schema to include `Airport` (IATA, City, Country), `Airlines`, `Airplane` (Model, Capacity), and `Flight` (Departure, Arrival, Base Price, Duration).
+    * Implement **Enums** for `FlightStatus` (Scheduled, Delayed, Boarding, Cancelled).
+* **The Seeding Script:** * Create a robust `seed.ts` file that populates the Neon DB with 20+ airports and 50+ flights. This is **critical** so the rest of the team isn't working with an empty database.
+* **The Management API:** * Build the "Admin/Company" API routes to Create, Update, and Delete flights.
+* **Initial Admin UI:** * Create a simple table view where a "Flight Company" user can see their flights and change their status.
 
 ---
 
-## 👥 Team Distribution
+## 🔍 Phase 2: The Search & Discovery Lead (Member B)
+**Goal:** Take Member A's data and make it findable for the "Normal User."
 
-### 1. Flight & Fleet Lead (Role: Flight Company)
-**Objective:** Build the inventory management system for airlines.
-* **Data Modeling:** Implement `Airline`, `Airplane`, and `Flight` models.
-* **Company Dashboard:** Build CRUD interfaces for adding flights, managing schedules, and setting base pricing.
-* **Status Management:** Logic for updating flight states (On-time, Delayed, Cancelled).
-
-### 2. Infrastructure Lead (Role: Airport Manager)
-**Objective:** Manage physical constraints and global routes.
-* **Registry:** Maintain the `Airport` database (IATA codes, cities, timezones).
-* **Route Logic:** Define connections and ensure flights only operate between valid airports.
-* **Manager Dashboard:** A bird's-eye view for airport staff to monitor all traffic at their specific hub.
-
-### 3. Booking & Transaction Lead
-**Objective:** Handle the mission-critical booking flow and concurrency.
-* **Seat Logic:** Build an interactive UI for seat selection based on airplane configuration.
-* **Transaction Integrity:** Use Prisma transactions to prevent double-booking of the same seat.
-* **Payment Flow:** Integrate a payment gateway (or mock) to transition bookings from `PENDING` to `CONFIRMED`.
-
-### 4. Search & UX Lead (Role: Traveler)
-**Objective:** The public-facing discovery portal.
-* **Search Engine:** Advanced filtering by date, price, duration, and stops.
-* **RBAC Middleware:** Logic to redirect users to the correct dashboard based on their role after login.
-* **Traveler Profile:** A "My Trips" section to view history and manage active tickets.
-
-### 5. Communications & Systems Lead
-**Objective:** Close the loop with documentation and system-wide visibility.
-* **E-Ticket Engine:** PDF generation for tickets (React-PDF/Puppeteer) including QR codes.
-* **Messaging:** Email notifications for booking confirmation and flight updates (Resend/SendGrid).
-* **Admin Analytics:** A global dashboard to track total revenue, busiest airports, and user growth.
+* **Complex Search Engine:** Build a specialized API route that filters flights by:
+    * Source and Destination Airports.
+    * Date (handling JS Date objects to match Prisma `DateTime`).
+    * Price Range and Airline filters.
+* **The Search UI:** * Build a high-quality "Hero" search bar with autocompletion (using Member A's Airport list).
+    * Design the **Flight Results Card**: Displaying duration, stops, price, and airline logo.
+* **Role-Based Middleware:** * Set up the logic to ensure only `AIRPORT_MANAGER` can access admin routes and `USER` stays on the booking side.
 
 ---
 
-## 🛠 Role-Based Access Control (RBAC)
+## 💺 Phase 3: The Booking & Seat Logic Expert (Member C)
+**Goal:** Turn a "Flight Result" into a "Selection." This is the most logic-heavy part.
 
-The system distinguishes permissions via the following roles:
-* **USER:** Search, book, and view personal tickets.
-* **FLIGHT_COMPANY:** Manage their own fleet and flight schedules.
-* **AIRPORT_MANAGER:** Monitor and manage airport-specific traffic/routes.
-* **ADMIN:** System-wide oversight and analytics.
+* **Dynamic Seat Map:** * Build a UI component that renders a grid of seats (e.g., Rows 1-30, Columns A-F).
+    * Logic: Map different prices to different rows (Business vs. Economy).
+    * Logic: Disable seats that are already flagged as "Occupied" in the DB.
+* **The Reservation Model:** * Create the `Booking` and `Passenger` tables in the Prisma schema.
+* **Inventory Lockdown:** * Implement **Prisma Transactions**. When a user clicks "Book," the system must check one last time if that seat is free before proceeding, preventing two people from booking seat 12A at the same time.
 
 ---
 
-## 📈 Development Roadmap
+## 💳 Phase 4: The Payment & Ticket Master (Member D)
+**Goal:** Handle the "Fake Payment" and generate the proof of purchase.
 
-### Phase 1: Infrastructure (Completed)
-- [x] Next.js project initialization.
-- [x] Prisma schema & Neon DB connection.
-- [x] Better Auth with Google OAuth.
+* **Checkout Flow:** * Create a checkout page where users enter Passenger Details (Name, Passport/ID, Age).
+* **Fake Payment Integration:** * Build a "Processing" UI (simulating a 3-second delay).
+    * Update the `Booking` status from `PENDING` to `CONFIRMED` upon "success."
+* **E-Ticket Generation:** * Use a library like `react-pdf` to generate a downloadable PDF.
+    * Include a unique **Booking Reference (PNR)** and a QR code (can be a static image for now).
+    * Ensure the ticket pulls data from Member A (Flight info) and Member C (Seat info).
 
-### Phase 2: Core Features (In-Progress)
-- **Database:** Finalize shared Prisma models and run migrations.
-- **Seeding:** Create a `seed.ts` to populate the DB with initial airports and aircraft.
-- **Dashboards:** Build out the protected routes for each user role.
+---
 
-### Phase 3: Launch
-- Integration testing for the booking flow.
-- UI/UX polish and mobile responsiveness.
-- Deployment on Vercel.
+## 🔔 Phase 5: The Notification & Dashboard Specialist (Member E)
+**Goal:** Finalize the user experience and provide post-booking value.
+
+* **The "My Trips" Dashboard:** * Build a sleek portal for the Normal User to view their upcoming and past trips.
+* **Live Updates UI:** * Implement a dashboard for **Airport Managers** to see a "Live Board" of all flights at their airport (Member A's data visualized).
+* **Automated Emails:** * Set up **Resend** or **Nodemailer**. When Member D finishes a booking, Member E’s logic triggers a "Thank You" email with the PDF ticket attached.
+* **Final Polish:** * Global error handling (404 pages, 500 error toasts) and ensuring the app is fully responsive on mobile.
+
+---
+
+## 🤝 The "Pass-the-Baton" Checklist
+
+| From | To | Deliverable |
+| :--- | :--- | :--- |
+| **Member A** | **Member B** | A database full of flights and an API to fetch them. |
+| **Member B** | **Member C** | A UI that passes a `flightId` to a booking page. |
+| **Member C** | **Member D** | A `bookingId` with selected seats ready for payment. |
+| **Member D** | **Member E** | A `CONFIRMED` status in the DB to trigger UI updates. |
+
+---
+
+## 🚦 Getting Started
+1. Clone the repository.
+2. Install dependencies: `npm install`
+3. Set up your `.env` with `DATABASE_URL` and Auth secrets.
+4. `npx prisma generate`
+4. Sync the schema: `npx prisma db push` (Every member must run this when starting their phase).
+5. Run the dev server: `npm run dev`
