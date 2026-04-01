@@ -55,6 +55,17 @@ const auth = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f
     database: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$better$2d$auth$2f$dist$2f$adapters$2f$prisma$2d$adapter$2f$prisma$2d$adapter$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__["prismaAdapter"])(prisma, {
         provider: "postgresql"
     }),
+    onCreateUser: async (user)=>{
+        // Set default role to USER; admins can be updated manually in DB
+        await prisma.user.update({
+            where: {
+                id: user.id
+            },
+            data: {
+                role: 'USER'
+            }
+        });
+    },
     socialProviders: {
         google: {
             clientId: process.env.GOOGLE_CLIENT_ID,

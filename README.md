@@ -76,6 +76,6 @@ This project is a high-performance, role-based flight booking application design
 1. Clone the repository.
 2. Install dependencies: `npm install`
 3. Set up your `.env` with `DATABASE_URL` and Auth secrets.
-4. `npx prisma generate`
 4. Sync the schema: `npx prisma db push` (Every member must run this when starting their phase).
-5. Run the dev server: `npm run dev`
+5. Seed the database: `npx prisma db seed`
+6. Run the dev server: `npm run dev`
